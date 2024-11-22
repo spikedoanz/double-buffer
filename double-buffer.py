@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import socket
 import json
 
+VERBOSE = True # print out logs
+
 @dataclass
 class Buffer:
   size: int
@@ -29,9 +31,21 @@ class Buffer:
           self.write, self.read = self.read, self.write
           self.idx = 0
           self.write = [None] * self.size
+          if VERBOSE:
+            print("SWAPPED!")
 
   def get(self, idx: int) -> Optional[str]:
     return self.read[idx % self.size]
+
+  def reset(self):
+    with self._swap_lock:
+      with self._idx_lock:
+        self.write = [None] * self.size
+        self.read = [None] * self.size
+        self._swap_lock = threading.Lock()
+        self._idx_lock = threading.Lock()
+        self.idx = 0
+
 
 def handle_client(conn, buffer):
   while True:
@@ -44,10 +58,20 @@ def handle_client(conn, buffer):
       if cmd["type"] == "put":
         buffer.put(cmd["value"])
         conn.send(json.dumps({"status": "ok"}).encode())
+        if VERBOSE:
+          print(f"PUT'ed {cmd["value"]}")
       
       elif cmd["type"] == "get":
         value = buffer.get(int(cmd["idx"]))
         conn.send(json.dumps({"value": value}).encode())
+        if VERBOSE:
+          print(f"GET'ed {value}")
+
+      elif cmd["type"] == "reset":
+        buffer.reset()
+        conn.send(json.dumps({"status": "ok"}).encode())
+        if VERBOSE:
+          print("Reset buffer successfully")
 
     except Exception as e:
       print(f"Error: {e}")
