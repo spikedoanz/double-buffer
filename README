@@ -1,0 +1,4 @@
+
+echo -n '{"type":"put","value":"test"}' | nc localhost 5000
+
+echo -n '{"type":"get","idx":0}' | nc localhost 5000
