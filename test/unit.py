@@ -33,7 +33,6 @@ class TestBuffer(unittest.TestCase):
         # Verify last 10 values
         for i in range(0, 10):
             result = self.send_command({"type": "get", "idx": i})
-            print(result["value"])
             self.assertEqual(result["value"], f"test{i}")
 
     def test_concurrent_writes(self):
